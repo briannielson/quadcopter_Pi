@@ -1,0 +1,77 @@
+PiCopter v0.1
+
+Ground Control is a Linux based controller to parse linux kernel events and send out Yaw, Pitch, Roll data over UDP.
+
+Pi Control is a Raspbian based quad controller to receive input from the Ground Control module and translate output to the individual motors.
+
+Pi Control contains a sub module called imu_sensor, being a modified version of Richard Hirst's modified version of Jeff Rowberg's I2CdevLib.
+
+To setup, you need to:
+	- Deploy ground control to your controller
+		- Modify controller.c to point to your device
+			Line 49: char * fd_source = "/dev/input/event10";
+		- Modify udpclient.c to point to your Pi Copter
+			Line 29: host= (struct hostent *) gethostbyname((char *)"192.168.1.2");
+		- run "make" in the directory ground_control
+			-- This compiled on Ubuntu 15.10. This was not tested on any other release.
+			-- On other Linux releases, you may or may not need to have the gcc 
+			-- option '-D_GNU_SOURCE' in the Makefile.
+	- Deploy Pi Control to your Pi Copter
+		- run "make" in the directory pi_control
+			-- This compiled on Ubuntu 15.10. This was not tested on any other release.
+			-- On other Linux releases, you may or may not need to have the gcc 
+			-- option '-D_GNU_SOURCE' in the Makefile.
+		- run "make" in the directory pi_control/imu_sensor
+			-- THIS IS C++ CODE AND A MAJORITY OF IT IS NOT OFFICIALLY PART OF MY RELEASE.
+			-- USE AT YOUR OWN RISK. REPORT ANY BUGS TO Richard Hirst (his README is included)
+
+To run:
+	- run "sudo ./dmp" in the directory "pi_control/imu_sensor"
+	- in another terminal, run "sudo ./control" in the directory "pi_control"
+	- on your laptop (ground control), run "sudo ./control" in the directory "ground_control"
+	
+Hardware:
+	- Raspberry Pi B+
+	- 12A BLHELI ESC x4
+	- Arris MT1806 brushless motor x4
+	- 5030 5x3 Propellors x8
+	- SanDisk 8GB Class 10 MicroSDHC
+	- ARRIS 200x300x3.0mm Carbon Fiber Plate
+	- Addicore 5V 1.5A Voltage Regulator L7805CV
+	- SMAKN Arduino GY-521 MPU6050 IMU
+	- Arducam 5mp OV5647 Mini Camera
+	- Venom 20C 3S 2100mAh 11.1V LiPo Battery
+	
+Compiled and written by Brian Bauman, with significant assistance based on other projects. Freely available to anyone to mess with. If you have any questions, shoot me an email (brian.bauman@cmich.edu), or post an issue on my github. If you need some help deploying this to your own quad, I can lend some assistance, but honestly do not run this version of the code. The PID control is currently out of whack and can be EXTREMELY dangerous (I was in the hospital earlier today because the algorithm exploded and the quad took a decent chunk of my finger off).
+
+I do not take any responsibility in the event of any injuries if you use this project.
+
+PiCopter
+--ground_control
+	-- main: Starts threads, critical variables, and atomic functions for critical values
+	-- controller: Reads input from /dev/input/event** and sets critical variables
+	-- udpclient: Reads critical variables and sends yaw, pitch, and roll values to quad
+-- pi_control
+	-- main: Starts threads, critical variables, and atomic functions for critical values
+	-- motorout: Translates input from critical variables to PWM outputs. Also contains PID algorithms currently
+	-- server: Listens on port 5000 by default for control information from ground_control
+	-- pwm: library used in RPIO (http://pythonhosted.org/RPIO)
+	-- imu_sensor
+		-- MPU6050, MPU76050_6Axis_MotionApps20: Contains DMP bits to program MPU6050, as well as core functions
+		-- helper_3d_math: used to calculate quaternions, euler, and orientation data from raw MPU6050 data
+		-- I2Cdev: I2CdevLib for basic I2C communication
+		-- dmp: translated Arduino sketch to work in C++, currently configured to write yaw, pitch, roll values to imuData
+		-- imuData: data output file to send data from C++ to C program (pi_control/motorout.c)
+
+Resources / code used:
+
+https://solenerotech1.wordpress.com/2013/09/09/tutorialhow-to-control-a-brushless-motor-with-raspberry-pi/ 
+https://pythonhosted.org/RPIO/pwm_py.html 
+https://www.cdiweb.com/datasheets/invensense/MPU-6050_DataSheet_V3 4.pdf 
+http://www.i2cdevlib.com/devices/mpu6050#source 
+https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
+http://matrixsust.blogspot.com/2011/10/udp-server-client-in-c.html 
+https://github.com/metachris/RPIO/tree/master/source/c_pwm 
+https://github.com/richardghirst/PiBits/tree/master/MPU6050-Pi-Demo 
+http://ctms.engin.umich.edu/CTMS/index.php?example=Introduction&section=ControlPID 
+http://www.linuxjournal.com/article/6429 
